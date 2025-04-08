@@ -322,7 +322,7 @@ fn_stop_graceful_rust() {
 	fn_print_dots "Graceful: rcon restart 60"
 	fn_script_log_info "Graceful: rcon restart 60"
 	# Sends rcon restart 60.
-	$HOME/sendRcon.sh restart 60
+	$HOME/sendRcon.sh "restart 60"
 	local rcon_exit_code=$?
 
 	if [ "${rcon_exit_code}" != "0" ]; then
