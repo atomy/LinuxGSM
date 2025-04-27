@@ -317,6 +317,48 @@ fn_stop_graceful_avorion() {
 	fi
 }
 
+# Attempts graceful shutdown for Rust by utilizing 3rd party tool.
+fn_stop_graceful_rust() {
+	fn_print_dots "Graceful: rcon restart 60"
+	fn_script_log_info "Graceful: rcon restart 60"
+	# Sends rcon restart 60.
+	$HOME/sendRcon.sh "restart 60"
+	local rcon_exit_code=$?
+
+	if [ "${rcon_exit_code}" != "0" ]; then
+		fn_print_error "Graceful: rcon restart 60: "
+		fn_print_fail_eol_nl
+		fn_script_log_error "Graceful: rcon restart 60: FAIL"
+		return 1
+	fi
+
+	fn_sleep_time_5
+	# Waits up to 80 seconds giving the server time to shutdown gracefuly.
+	for seconds in {1..80}; do
+		check_status.sh
+		if [ "${status}" == "0" ]; then
+			fn_print_ok "Graceful: rcon restart 60: ${seconds}"
+			fn_print_ok_eol_nl
+			fn_script_log_pass "Graceful: rcon restart 60: OK: ${seconds} seconds"
+			if [ "${statusalert}" == "on" ] && [ "${firstcommandname}" == "STOP" ]; then
+				alert="stopped"
+				alert.sh
+			fi
+			break
+		fi
+		fn_sleep_time_1
+		fn_print_dots "Graceful: rcon restart 60: ${seconds}"
+	done
+	
+	check_status.sh
+
+	if [ "${status}" != "0" ]; then
+		fn_print_error "Graceful: rcon restart 60: "
+		fn_print_fail_eol_nl
+		fn_script_log_error "Graceful: rcon restart 60: FAIL"
+	fi
+}
+
 fn_stop_graceful_select() {
 	if [ "${stopmode}" == "1" ]; then
 		fn_stop_tmux
@@ -344,6 +386,8 @@ fn_stop_graceful_select() {
 		fn_stop_graceful_cmd "shutdown" 30
 	elif [ "${stopmode}" == "13" ]; then
 		fn_stop_graceful_sm
+	elif [ "${stopmode}" == "14" ]; then
+		fn_stop_graceful_rust
 	fi
 }
 
@@ -378,6 +422,8 @@ fn_stop_pre_check() {
 		# Check status again, a kill tmux session if graceful shutdown failed.
 		check_status.sh
 		if [ "${status}" != "0" ]; then
+			fn_print_fail_nl "${servername} is still running, kill tmux session"
+			fn_script_log_fail "${servername} is still running, kill tmux session"
 			fn_stop_tmux
 		fi
 	fi
